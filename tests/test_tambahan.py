@@ -55,24 +55,6 @@ def test_regresi_dua_cabang_and_digabung_or():
     assert where.left.op == "AND"
     assert where.right.op == "AND"
 
-def test_regresi_and_lebih_kuat_dari_or():
-    # a OR (b AND c), bukan (a OR b) AND c  (spek 3.1)
-    script = parse_sql("SELECT a FROM t WHERE a = 1 OR b = 2 AND c = 3")
-    assert script.errors == []
-    where = script.statements[0].where
-    assert where.op == "OR"
-    assert where.left.op == "="
-    assert where.right.op == "AND"
-
-
-def test_regresi_dua_cabang_and_digabung_or():
-    # (a AND b) OR (c AND d)
-    script = parse_sql("SELECT a FROM t WHERE a = 1 AND b = 2 OR c = 3 AND d = 4")
-    where = script.statements[0].where
-    assert where.op == "OR"
-    assert where.left.op == "AND"
-    assert where.right.op == "AND"
-
 def test_regresi_recovery_berhenti_di_titik_koma():
     # Setiap statement rusak = satu error; statement valid sesudahnya tetap diproses (spek 6).
     script = parse_sql("SELECT FROM a; SELECT x FROM; SELECT y FROM z;")
@@ -242,3 +224,21 @@ def test_tepi_penanda_komentar_di_dalam_string_bukan_komentar():
     dua = [(t.type, t.value) for t in tokenize("'a /* b' x") if t.type != T.EOF]
     assert dua == [(T.STRING, "a /* b"), (T.IDENT, "x")]
 
+def test_tepi_lexerror_menghentikan_seluruh_file():
+    # Beda dengan parse error (yang punya recovery), LexError menghentikan pemrosesan
+    # file (spek 2.7): statement valid sebelum karakter ilegal pun tidak dihitung.
+    hasil = analyze_source("SELECT a FROM t; SELECT $ FROM u;")
+    assert hasil.lex_error is not None
+    assert hasil.lex_error.line == 1 and hasil.lex_error.col == 25
+    assert hasil.statements == [] and hasil.matrix() == {}
+
+
+def test_tepi_between_dan_and_logika_berdampingan():
+    # AND pertama milik BETWEEN, AND kedua pemisah logika (spek 3.2). Berisiko karena
+    # perbaikan presedensi AND/OR bisa merusak cara BETWEEN menelan AND-nya.
+    script = parse_sql("SELECT a FROM t WHERE x BETWEEN 1 AND 2 AND y = 3")
+    where = script.statements[0].where
+    assert script.errors == []
+    assert where.op == "AND"
+    assert isinstance(where.left, Between)
+    assert where.right.op == "="
