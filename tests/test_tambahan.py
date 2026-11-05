@@ -10,6 +10,7 @@ from crud.lexer import TokenType as T, tokenize
 from crud.parser import parse_sql
 from crud.resolver import Resolver
 from crud.ast_nodes import ColumnRef, iter_nodes
+from crud.analyzer import analyze_statement
 
 def test_regresi_keyword_campuran_huruf_dan_identifier_berawalan_keyword():
     # Keyword tidak peka huruf besar/kecil (spek 2.2), dan nilainya jadi huruf besar.
@@ -116,3 +117,16 @@ def test_regresi_alias_delete_tidak_bocor_ke_statement_berikutnya():
     kolom_s = [c for c in iter_nodes(script.statements[1]) if isinstance(c, ColumnRef)]
     assert kolom_s[0].resolved is None
     assert any(d.level == "error" and "'s'" in d.message for d in diags)
+
+def test_regresi_subquery_di_update_hanya_dibaca():
+    # Tabel di subquery selalu R, apa pun jenis statement luarnya (spek 5).
+    where = parse_sql("UPDATE pesanan SET status = 'X' "
+                      "WHERE pelanggan_id IN (SELECT id FROM pelanggan)")
+    assert analyze_statement(where.statements[0]) == {"pesanan": {"U"}, "pelanggan": {"R"}}
+    setclause = parse_sql("UPDATE t SET a = (SELECT b FROM u)")
+    assert analyze_statement(setclause.statements[0]) == {"t": {"U"}, "u": {"R"}}
+
+def test_regresi_update_membaca_tabelnya_sendiri_lewat_subquery():
+    # Tabel yang sama dibaca dan diubah: harus R dan U sekaligus.
+    script = parse_sql("UPDATE t SET a = (SELECT MAX(a) FROM t)")
+    assert analyze_statement(script.statements[0]) == {"t": {"R", "U"}}
