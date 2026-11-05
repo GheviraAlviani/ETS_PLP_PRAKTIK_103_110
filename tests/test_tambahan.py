@@ -159,3 +159,35 @@ def test_komentar_blok_tidak_bersarang():
     # Komentar berakhir di */ pertama (spek 2.3: tidak bersarang).
     toks = tokenize("/* a /* b */ SELECT")
     assert [t.value for t in toks if t.type != T.EOF] == ["SELECT"]
+
+def test_insert_select_target_c_sumber_r():
+    # INSERT ... SELECT: tabel target C, tabel sumber R (spek 5).
+    script = parse_sql("INSERT INTO arsip (id) SELECT id FROM pesanan WHERE total > 10")
+    assert script.errors == []
+    assert analyze_statement(script.statements[0]) == {"arsip": {"C"}, "pesanan": {"R"}}
+
+
+def test_insert_select_tanpa_daftar_kolom():
+    script = parse_sql("INSERT INTO arsip SELECT id FROM pesanan")
+    insert = script.statements[0]
+    assert script.errors == []
+    assert insert.columns == [] and insert.values == []
+    assert insert.query is not None
+
+
+def test_insert_select_subquery_di_where_tetap_r():
+    script = parse_sql("INSERT INTO arsip (id) SELECT id FROM pesanan "
+                       "WHERE id IN (SELECT id FROM pelanggan)")
+    assert analyze_statement(script.statements[0]) == {
+        "arsip": {"C"}, "pesanan": {"R"}, "pelanggan": {"R"}}
+
+
+def test_insert_select_dari_tabel_yang_sama_menjadi_cr():
+    script = parse_sql("INSERT INTO t SELECT a FROM t")
+    assert analyze_statement(script.statements[0]) == {"t": {"C", "R"}}
+
+
+def test_insert_select_resolver_membuat_scope_untuk_select():
+    cols, diags = _kolom("INSERT INTO arsip (id) SELECT p.id FROM pesanan p")
+    assert diags == []
+    assert cols == [("p", "id", "pesanan")]
