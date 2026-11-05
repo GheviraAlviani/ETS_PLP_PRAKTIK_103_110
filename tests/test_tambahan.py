@@ -8,7 +8,8 @@ Isi dengan:
 
 from crud.lexer import TokenType as T, tokenize
 from crud.parser import parse_sql
-
+from crud.resolver import Resolver
+from crud.ast_nodes import ColumnRef, iter_nodes
 
 def test_regresi_keyword_campuran_huruf_dan_identifier_berawalan_keyword():
     # Keyword tidak peka huruf besar/kecil (spek 2.2), dan nilainya jadi huruf besar.
@@ -83,3 +84,26 @@ def test_regresi_left_outer_join():
     script = parse_sql("SELECT a FROM t LEFT OUTER JOIN u ON t.id = u.id")
     assert script.errors == []
     assert script.statements[0].joins[0].kind == "LEFT"
+
+def _kolom(sql):
+    script = parse_sql(sql)
+    diags = Resolver().resolve_script(script)
+    cols = [(c.qualifier, c.name, c.resolved)
+            for c in iter_nodes(script.statements) if isinstance(c, ColumnRef)]
+    return cols, diags
+
+def test_regresi_alias_dalam_menutupi_alias_luar():
+    # Alias x di subquery milik pesanan, menutupi alias x di luar (spek 4.3).
+    cols, _ = _kolom("SELECT x.id FROM pelanggan x WHERE x.id IN "
+                     "(SELECT x.pelanggan_id FROM pesanan x WHERE x.total > 5)")
+    dalam = [c for c in cols if c[1] in ("pelanggan_id", "total")]
+    luar = [c for c in cols if c[1] == "id"]
+    assert dalam and all(c[2] == "pesanan" for c in dalam)
+    assert luar and all(c[2] == "pelanggan" for c in luar)
+
+def test_regresi_correlated_subquery_tetap_melihat_alias_luar():
+    # Penjaga: setelah perbaikan, subquery tetap bisa merujuk alias luar.
+    cols, diags = _kolom("SELECT p.a FROM t p WHERE EXISTS "
+                         "(SELECT 1 FROM u q WHERE q.id = p.id)")
+    assert diags == []
+    assert ("p", "id", "t") in cols and ("q", "id", "u") in cols
