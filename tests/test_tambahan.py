@@ -13,6 +13,8 @@ from crud.ast_nodes import ColumnRef, iter_nodes
 from crud.analyzer import analyze_statement
 import pytest
 from crud.lexer import LexError
+from crud.ast_nodes import Between, ColumnRef, iter_nodes
+from crud.pipeline import analyze_source
 
 def test_regresi_keyword_campuran_huruf_dan_identifier_berawalan_keyword():
     # Keyword tidak peka huruf besar/kecil (spek 2.2), dan nilainya jadi huruf besar.
@@ -231,3 +233,12 @@ def test_kolom_tanpa_scope_tidak_crash():
     cols, diags = _kolom("INSERT INTO t (a) VALUES (x)")
     assert cols == [(None, "x", None)]
     assert [d.level for d in diags] == ["warning"]
+
+def test_tepi_penanda_komentar_di_dalam_string_bukan_komentar():
+    # '--' dan '/*' di dalam string hanyalah teks. Berisiko kalau lexer memeriksa
+    # komentar sebelum tahu sedang berada di dalam string (spek 2.3 dan 2.4).
+    satu = [(t.type, t.value) for t in tokenize("'a -- b'") if t.type != T.EOF]
+    assert satu == [(T.STRING, "a -- b")]
+    dua = [(t.type, t.value) for t in tokenize("'a /* b' x") if t.type != T.EOF]
+    assert dua == [(T.STRING, "a /* b"), (T.IDENT, "x")]
+
