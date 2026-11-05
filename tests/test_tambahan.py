@@ -66,3 +66,15 @@ def test_regresi_dua_cabang_and_digabung_or():
     assert where.op == "OR"
     assert where.left.op == "AND"
     assert where.right.op == "AND"
+
+def test_regresi_recovery_berhenti_di_titik_koma():
+    # Setiap statement rusak = satu error; statement valid sesudahnya tetap diproses (spek 6).
+    script = parse_sql("SELECT FROM a; SELECT x FROM; SELECT y FROM z;")
+    assert len(script.errors) == 2
+    assert len(script.statements) == 1
+
+def test_regresi_recovery_statement_valid_setelah_error():
+    script = parse_sql("SELECT FROM a;\nSELECT x FROM t;")
+    assert len(script.errors) == 1
+    assert len(script.statements) == 1
+    assert script.statements[0].line == 2
