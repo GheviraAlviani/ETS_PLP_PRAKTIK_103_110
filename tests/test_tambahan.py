@@ -15,3 +15,11 @@ def test_regresi_keyword_campuran_huruf_dan_identifier_berawalan_keyword():
     assert toks[0].type == T.KEYWORD and toks[0].value == "SELECT"
     # "selection" hanya DIAWALI keyword, jadi tetap IDENT dan teksnya tidak diubah.
     assert toks[1].type == T.IDENT and toks[1].value == "selection"
+
+def test_regresi_operator_tidak_sama_dengan_satu_token():
+    # <> harus satu token OP (spek 2.5, maximal munch), bukan '<' lalu '>'.
+    toks = [t for t in tokenize("a <> b") if t.type != T.EOF]
+    assert [t.value for t in toks] == ["a", "<>", "b"]
+    assert toks[1].type == T.OP
+    # tanpa spasi pun harus tetap satu token
+    assert [t.value for t in tokenize("a<>b") if t.type != T.EOF] == ["a", "<>", "b"]
