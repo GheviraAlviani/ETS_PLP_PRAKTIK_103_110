@@ -78,3 +78,8 @@ def test_regresi_recovery_statement_valid_setelah_error():
     assert len(script.errors) == 1
     assert len(script.statements) == 1
     assert script.statements[0].line == 2
+
+def test_regresi_left_outer_join():
+    script = parse_sql("SELECT a FROM t LEFT OUTER JOIN u ON t.id = u.id")
+    assert script.errors == []
+    assert script.statements[0].joins[0].kind == "LEFT"
