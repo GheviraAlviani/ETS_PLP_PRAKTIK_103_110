@@ -162,7 +162,11 @@ class Lexer:
                 raise LexError("string tidak ditutup", line, col)
             ch = self._advance()
             if ch == "'":
-                break
+                 if self._peek() == "'":   # '' berarti satu kutip di dalam isi
+                    self._advance()
+                    chars.append("'")
+                    continue
+                 break
             chars.append(ch)
         self._add(TokenType.STRING, "".join(chars), line, col)
 
