@@ -23,3 +23,6 @@ pemeliharaan.sql,3,crm.pelanggan,R
 pemeliharaan.sql,3,crm.alamat,R
 pemeliharaan.sql,8,crm.pelanggan,U
 pemeliharaan.sql,12,crm.log_perubahan,C
+pemeliharaan.sql,12,crm.pelanggan,R
+pemeliharaan.sql,15,crm.alamat,D
+pemeliharaan.sql,15,crm.pelanggan,R
