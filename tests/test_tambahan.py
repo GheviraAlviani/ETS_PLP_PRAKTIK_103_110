@@ -107,3 +107,12 @@ def test_regresi_correlated_subquery_tetap_melihat_alias_luar():
                          "(SELECT 1 FROM u q WHERE q.id = p.id)")
     assert diags == []
     assert ("p", "id", "t") in cols and ("q", "id", "u") in cols
+
+def test_regresi_alias_delete_tidak_bocor_ke_statement_berikutnya():
+    script = parse_sql("DELETE FROM sesi s WHERE s.a = 1; SELECT s.id FROM u")
+    resolver = Resolver()
+    diags = resolver.resolve_script(script)
+    assert resolver.scope is None  # tidak ada scope tersisa (spek 4.5)
+    kolom_s = [c for c in iter_nodes(script.statements[1]) if isinstance(c, ColumnRef)]
+    assert kolom_s[0].resolved is None
+    assert any(d.level == "error" and "'s'" in d.message for d in diags)
