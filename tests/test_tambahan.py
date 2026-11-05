@@ -191,3 +191,43 @@ def test_insert_select_resolver_membuat_scope_untuk_select():
     cols, diags = _kolom("INSERT INTO arsip (id) SELECT p.id FROM pesanan p")
     assert diags == []
     assert cols == [("p", "id", "pesanan")]
+
+def test_kolom_tanpa_qualifier_ambigu_untuk_dua_tabel():
+    # Dua tabel di scope terdalam: warning ambigu, resolved tetap None (spek 4.3).
+    cols, diags = _kolom("SELECT nama FROM pelanggan p JOIN pesanan o ON o.pelanggan_id = p.id")
+    nama = [c for c in cols if c[1] == "nama"][0]
+    assert nama[2] is None
+    assert [d.level for d in diags] == ["warning"]
+    assert "ambigu" in diags[0].message and "'nama'" in diags[0].message
+
+
+def test_kolom_tanpa_qualifier_hanya_melihat_scope_terdalam():
+    cols, diags = _kolom("SELECT p.id FROM pelanggan p "
+                         "WHERE EXISTS (SELECT 1 FROM pesanan o WHERE total > 5)")
+    total = [c for c in cols if c[1] == "total"][0]
+    assert total[2] == "pesanan" and diags == []
+
+
+def test_kolom_tanpa_qualifier_tidak_jatuh_ke_scope_luar():
+    # Scope dalam punya dua tabel, jadi ambigu, walau scope luar hanya punya satu.
+    cols, diags = _kolom("SELECT p.id FROM pelanggan p "
+                         "WHERE EXISTS (SELECT 1 FROM pesanan o, detail d WHERE total > 5)")
+    total = [c for c in cols if c[1] == "total"][0]
+    assert total[2] is None
+    assert any("ambigu" in d.message for d in diags)
+
+
+def test_update_kolom_tanpa_qualifier_ke_tabel_target():
+    cols, diags = _kolom("UPDATE pesanan SET status = 'X' WHERE pelanggan_id IN "
+                         "(SELECT id FROM pelanggan WHERE diblokir = 1)")
+    peta = {nama: hasil for _, nama, hasil in cols}
+    assert peta == {"status": "pesanan", "pelanggan_id": "pesanan",
+                    "id": "pelanggan", "diblokir": "pelanggan"}
+    assert diags == []
+
+
+def test_kolom_tanpa_scope_tidak_crash():
+    # INSERT ... VALUES tidak membuat scope; kolom di dalamnya cukup jadi warning.
+    cols, diags = _kolom("INSERT INTO t (a) VALUES (x)")
+    assert cols == [(None, "x", None)]
+    assert [d.level for d in diags] == ["warning"]
