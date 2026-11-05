@@ -7,6 +7,7 @@ Isi dengan:
 """
 
 from crud.lexer import TokenType as T, tokenize
+from crud.parser import parse_sql
 
 
 def test_regresi_keyword_campuran_huruf_dan_identifier_berawalan_keyword():
@@ -29,4 +30,39 @@ def test_regresi_kutip_ganda_dalam_string_jadi_satu_token():
     toks = [t for t in tokenize("'O''Brien'") if t.type != T.EOF]
     assert len(toks) == 1
     assert toks[0].type == T.STRING and toks[0].value == "O'Brien"
-    
+
+def test_regresi_and_lebih_kuat_dari_or():
+    # a OR (b AND c), bukan (a OR b) AND c  (spek 3.1)
+    script = parse_sql("SELECT a FROM t WHERE a = 1 OR b = 2 AND c = 3")
+    assert script.errors == []
+    where = script.statements[0].where
+    assert where.op == "OR"
+    assert where.left.op == "="
+    assert where.right.op == "AND"
+
+
+def test_regresi_dua_cabang_and_digabung_or():
+    # (a AND b) OR (c AND d)
+    script = parse_sql("SELECT a FROM t WHERE a = 1 AND b = 2 OR c = 3 AND d = 4")
+    where = script.statements[0].where
+    assert where.op == "OR"
+    assert where.left.op == "AND"
+    assert where.right.op == "AND"
+
+def test_regresi_and_lebih_kuat_dari_or():
+    # a OR (b AND c), bukan (a OR b) AND c  (spek 3.1)
+    script = parse_sql("SELECT a FROM t WHERE a = 1 OR b = 2 AND c = 3")
+    assert script.errors == []
+    where = script.statements[0].where
+    assert where.op == "OR"
+    assert where.left.op == "="
+    assert where.right.op == "AND"
+
+
+def test_regresi_dua_cabang_and_digabung_or():
+    # (a AND b) OR (c AND d)
+    script = parse_sql("SELECT a FROM t WHERE a = 1 AND b = 2 OR c = 3 AND d = 4")
+    where = script.statements[0].where
+    assert where.op == "OR"
+    assert where.left.op == "AND"
+    assert where.right.op == "AND"
