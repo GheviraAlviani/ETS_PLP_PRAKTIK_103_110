@@ -32,11 +32,20 @@ PS C:\Users\ASUS\Documents\Semester 3\PLP\crud-extractor\crud-extractor>
 
 ## 2. Tiga kasus di mana regex salah
 
-Untuk tiap kasus: SQL-nya, kesalahan regex, dan mengapa parser benar (kaitkan dengan konsep
-lexing, parsing, atau resolusi).
+Kasus 1: Komentar dan string (laporan_penjualan.sql baris 2–6, pemeliharaan.sql baris 1–2)
 
-1.
-2.
+    -- DELETE FROM pelanggan   (baris ini komentar, bukan perintah)
+    SELECT p.nama ... WHERE o.catatan <> 'FROM rahasia';
+
+    - Kesalahan regex: pola dijalankan pada teks mentah, jadi regex menemukan pelanggan D dari komentar dan rahasia R dari isi string. Baris statement diambil dari kata kunci pertama di potongan teks (termasuk di komentar), sehingga seluruh hasil SELECT dilaporkan di baris 2, bukan baris 3 (itu sebabnya ada FN di baris 3). Di pemeliharaan.sql, regex menemukan pelanggan_lama U dari komentar blok.
+    - Kenapa parser benar: lexer membuang komentar dan membaca string sebagai satu token STRING, jadi isinya tidak pernah sampai ke parser.
+
+Kasus 2: DELETE FROM ikut dihitung sebagai pembacaan (laporan_penjualan.sql baris 15, campuran_error.sql baris 8, audit.sql baris 16, pemeliharaan.sql baris 15)
+
+    DELETE FROM pesanan WHERE tanggal < :batas;
+
+    - Kesalahan regex: ada dua pola yang cocok pada teks yang sama: DELETE FROM nama (D) dan FROM nama (R). Hasilnya pesanan D (benar) dan pesanan R (salah).
+    - Kenapa parser benar: grammar delete_stmt = "DELETE" "FROM" table_name ... menjadikan FROM bagian dari DELETE, bukan klausa pembacaan. Parser memahami kata dari posisinya dalam grammar, bukan sekadar mencocokkan kata.
 3.
 
 ## 3. Batas pendekatan kami
