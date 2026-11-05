@@ -11,6 +11,8 @@ from crud.parser import parse_sql
 from crud.resolver import Resolver
 from crud.ast_nodes import ColumnRef, iter_nodes
 from crud.analyzer import analyze_statement
+import pytest
+from crud.lexer import LexError
 
 def test_regresi_keyword_campuran_huruf_dan_identifier_berawalan_keyword():
     # Keyword tidak peka huruf besar/kecil (spek 2.2), dan nilainya jadi huruf besar.
@@ -130,3 +132,30 @@ def test_regresi_update_membaca_tabelnya_sendiri_lewat_subquery():
     # Tabel yang sama dibaca dan diubah: harus R dan U sekaligus.
     script = parse_sql("UPDATE t SET a = (SELECT MAX(a) FROM t)")
     assert analyze_statement(script.statements[0]) == {"t": {"R", "U"}}
+
+def test_komentar_blok_tidak_menghasilkan_token():
+    # Komentar blok dibuang lexer, tidak sampai ke parser (spek 2.3).
+    toks = tokenize("SELECT /* abc */ a")
+    assert [t.value for t in toks if t.type != T.EOF] == ["SELECT", "a"]
+
+
+def test_komentar_blok_lintas_baris_menjaga_nomor_baris():
+    toks = tokenize("/* a\n b\n c */ SELECT")
+    assert toks[0].value == "SELECT" and toks[0].line == 3
+
+
+def test_komentar_blok_tidak_ditutup_adalah_lexerror():
+    with pytest.raises(LexError) as info:
+        tokenize("SELECT /* abc")
+    assert info.value.line == 1 and info.value.col == 8
+
+
+def test_komentar_blok_boleh_berisi_bintang():
+    assert [t.value for t in tokenize("SELECT /* a * b ** c */ x") if t.type != T.EOF] == ["SELECT", "x"]
+    assert [t.value for t in tokenize("/**/ SELECT") if t.type != T.EOF] == ["SELECT"]
+
+
+def test_komentar_blok_tidak_bersarang():
+    # Komentar berakhir di */ pertama (spek 2.3: tidak bersarang).
+    toks = tokenize("/* a /* b */ SELECT")
+    assert [t.value for t in toks if t.type != T.EOF] == ["SELECT"]
