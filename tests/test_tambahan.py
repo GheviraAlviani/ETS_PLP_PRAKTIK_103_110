@@ -242,3 +242,18 @@ def test_tepi_between_dan_and_logika_berdampingan():
     assert where.op == "AND"
     assert isinstance(where.left, Between)
     assert where.right.op == "="
+
+def test_tepi_subquery_from_tidak_melihat_tabel_saudara():
+    # Spek 4.4: subquery di FROM di-resolve sebelum scope pembungkusnya dibuat, jadi
+    # alias x milik tabel saudaranya tidak terlihat dari dalam subquery.
+    _, diags = _kolom("SELECT x.a FROM t x JOIN (SELECT a FROM u WHERE x.a = 1) y ON y.a = x.a")
+    assert any(d.level == "error" and "'x'" in d.message for d in diags)
+
+
+def test_tepi_matrix_urutan_baris_dan_statement_gagal():
+    # Gabungan operasi berurutan C,R,U,D ("RU", bukan "UR"); baris = keyword awal statement
+    # (setelah komentar); statement yang gagal di-parse tidak dihitung (spek 5).
+    hasil = analyze_source("-- c\n\nUPDATE t SET a = 1;\nSELECT * FROM t;\nSELECT FROM;\nDELETE FROM u;")
+    assert hasil.matrix() == {"t": "RU", "u": "D"}
+    assert [s.line for s in hasil.statements] == [3, 4, 6]
+    assert len(hasil.parse_errors) == 1
