@@ -103,4 +103,19 @@ Satu bug atau satu TODO dikerjakan dalam satu commit.
 | T3: komentar blok `/* */` | Ghevira | Luthfiana |
 | Ground truth `audit.sql` | Luthfiana (baris 2, 8, dan `pelanggan` di baris 12) dan Ghevira (baris 12 `pesanan`, 16, 18, 20) | saling memeriksa |
 | Ground truth `pemeliharaan.sql` | Luthfiana (baris 3, 8, dan `crm.log_perubahan` di baris 12) dan Ghevira (baris 12 `crm.pelanggan`, 15) | saling memeriksa |
-| Lima test kasus tepi | Ghevira (LexError menghentikan file, BETWEEN dan AND logika); Luthfiana (...) | saling memeriksa |
+| Lima test kasus tepi | Ghevira (LexError menghentikan file, BETWEEN dan AND logika); Luthfiana (nomor 1, 4, dan 5: penanda komentar di dalam string, subquery di FROM tidak melihat tabel saudara, urutan RU dan statement gagal) | saling memeriksa |
+
+**Bagaimana kami memastikan keduanya memahami seluruh kode.**
+- Mengenali gejala bersama. Kami menjalankan `pytest`, CLI, `--ast`, dan `evaluate.py`,
+  lalu mencatat gejala dan membandingkannya dengan SPESIFIKASI.md. Daftar akar masalah
+  lengkap, termasuk bug yang tidak tertangkap test bawaan, disusun dengan bantuan AI dan
+  kami reproduksi satu per satu.
+- Memahami sebelum memperbaiki. Tiap bug dilacak ke tahap pipeline dan bagian spek yang
+  dilanggar. Kami menulis test yang gagal lebih dulu, memperbaiki kode sampai lulus, lalu
+  commit tersendiri per bug.
+- Pembagian pengerjaan. Bug dan TODO dibagi bergantian (seperti pada tabel). Luthfiana menyentuh
+  keempat tahap pipeline. Ghevira menyentuh lexer, parser, dan resolver; bagian analyzer
+  (Bug 9).
+- Ground truth. `audit.sql`: percobaan awal dilakukan manual lalu dikoreksi dengan bantuan
+  AI. `pemeliharaan.sql`: label diturunkan dari aturan spek 5 dengan bantuan AI. Keduanya
+  diverifikasi dengan `evaluate.py` dan kami menjelaskan ulang alasan tiap label.
