@@ -72,7 +72,11 @@ dan informasi apa yang dibutuhkan untuk mengatasinya.
     - akibatnya statement ditolak parser (diharapkan awal statement ... ditemukan 'WITH') dan tidak dihitung, jadi matriks untuk statement itu kosong (false negative). Hal serupa terjadi pada UNION, CREATE TABLE, dan SELECT t.*.
     - informasi yang dibutuhkan adalah grammar yang diperluas dan aturan scope untuk CTE.
 
-3. 
+3. View, trigger, stored procedure, dan SQL dinamis
+    SELECT * FROM v_laporan
+    
+    - akibatnya v_laporan dihitung sebagai tabel (R), padahal sebenarnya view yang membaca tabel dasar lain. Trigger yang menjalankan DML tersembunyi tidak terlihat. SQL yang dirakit sebagai string lalu dieksekusi aplikasi tidak dianalisis sama sekali.
+    - Informasi yang dibutuhkan yaitu definisi view dan trigger dari katalog database, serta analisis kode aplikasi.
 
 ## 4. Pembagian kerja
 
