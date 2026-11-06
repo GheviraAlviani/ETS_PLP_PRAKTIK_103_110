@@ -81,7 +81,7 @@ dan informasi apa yang dibutuhkan untuk mengatasinya.
 ## 4. Pembagian kerja
 
 **Cara kerja.** Kami memakai pair programming dengan peran driver dan navigator yang
-bergantian (...menit sekali, lewat ...). Setiap anggota bekerja di branch sendiri
+bergantian. Setiap anggota bekerja di branch sendiri
 (`103_Ghevira` dan `110_LuthfianaAriba`), lalu digabung ke `main` lewat Pull Request.
 Satu bug atau satu TODO dikerjakan dalam satu commit.
 
