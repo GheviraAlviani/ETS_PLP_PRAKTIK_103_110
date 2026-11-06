@@ -74,10 +74,33 @@ dan informasi apa yang dibutuhkan untuk mengatasinya.
 
 3. View, trigger, stored procedure, dan SQL dinamis
     SELECT * FROM v_laporan
-    
+
     - akibatnya v_laporan dihitung sebagai tabel (R), padahal sebenarnya view yang membaca tabel dasar lain. Trigger yang menjalankan DML tersembunyi tidak terlihat. SQL yang dirakit sebagai string lalu dieksekusi aplikasi tidak dianalisis sama sekali.
     - Informasi yang dibutuhkan yaitu definisi view dan trigger dari katalog database, serta analisis kode aplikasi.
 
 ## 4. Pembagian kerja
 
-Siapa mengerjakan apa, dan bagaimana kalian memastikan keduanya memahami seluruh kode.
+**Cara kerja.** Kami memakai pair programming dengan peran driver dan navigator yang
+bergantian (...menit sekali, lewat ...). Setiap anggota bekerja di branch sendiri
+(`103_Ghevira` dan `110_LuthfianaAriba`), lalu digabung ke `main` lewat Pull Request.
+Satu bug atau satu TODO dikerjakan dalam satu commit.
+
+**Siapa mengerjakan apa.**
+
+| Pekerjaan | Dikerjakan oleh | Diperiksa oleh |
+| --- | --- | --- |
+| Bug 1: keyword huruf kecil | Luthfiana | Ghevira |
+| Bug 2: operator `<>` | Ghevira | Luthfiana |
+| Bug 3: `''` di dalam string | Luthfiana | Ghevira |
+| Bug 4: presedensi `OR` dan `AND` | Ghevira | Luthfiana |
+| Bug 5: error recovery | Luthfiana | Ghevira |
+| Bug 6: `LEFT OUTER JOIN` | Ghevira | Luthfiana |
+| Bug 7: arah pencarian scope | Luthfiana | Ghevira |
+| Bug 8: scope `DELETE` bocor | Ghevira | Luthfiana |
+| Bug 9: subquery `UPDATE` jadi R | Luthfiana | Ghevira |
+| T1: `INSERT ... SELECT` | Luthfiana | Ghevira |
+| T2: kolom tanpa qualifier | Ghevira | Luthfiana |
+| T3: komentar blok `/* */` | Ghevira | Luthfiana |
+| Ground truth `audit.sql` | Luthfiana (baris 2, 8, dan `pelanggan` di baris 12) dan Ghevira (baris 12 `pesanan`, 16, 18, 20) | saling memeriksa |
+| Ground truth `pemeliharaan.sql` | Luthfiana (baris 3, 8, dan `crm.log_perubahan` di baris 12) dan Ghevira (baris 12 `crm.pelanggan`, 15) | saling memeriksa |
+| Lima test kasus tepi | Ghevira (LexError menghentikan file, BETWEEN dan AND logika); Luthfiana (...) | saling memeriksa |
