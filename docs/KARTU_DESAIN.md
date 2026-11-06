@@ -12,8 +12,8 @@ alternatif yang ditolak dan alasannya. Contoh topik (boleh memilih yang lain):
 
 | No | Keputusan | Alternatif yang ditolak | Alasan |
 | --- | --- | --- | --- |
-| 1 | | | |
-| 2 | | | |
+| 1 |Presedensi AND/OR dinyatakan lewat dua fungsi terpisah (_or memanggil _and, _and memanggil _not)|(a) Satu loop dengan tabel prioritas operator, (b) precedence climbing|Dua fungsi mencerminkan grammar spek satu-satu (or_expr, and_expr, not_expr), jadi mudah diperiksa terhadap spek. Gayanya juga sama dengan fungsi lain yang ada di parser (additive, multiplicative). Alternatif (a) dan (b) lebih ringkas tetapi menyembunyikan struktur grammar, dan satu loop itu persis sumber Bug 4.|
+| 2 |Error recovery berhenti di ; (buang token sampai dan termasuk ;, lalu lanjut)|(a) Berhenti di keyword awal statement berikutnya (SELECT, INSERT, ...), (b) berhenti di akhir file|Keyword SELECT juga muncul di dalam statement (subquery dan INSERT ... SELECT), jadi parser bisa berhenti di tengah statement yang masih rusak dan menghasilkan error ganda. ; adalah batas statement yang pasti. Spek 6 juga menetapkannya. Alternatif (b) adalah perilaku lama yang membuang semua statement valid sesudahnya (Bug 5)|
 | 3 | | | |
 | 4 | | | |
 | 5 | | | |
