@@ -34,32 +34,34 @@ test_regresi_keyword_campuran_huruf_dan_identifier_berawalan_keyword (ditambah t
 memverifikasinya?
 menunjukkan lokasi bug (_word), memberi kode perbaikan dan kode test. Kami menerapkannya, memeriksa diff, dan memverifikasi dengan menjalankan test baru (gagal sebelum, lulus sesudah) serta python -m pytest.
 ---
-## Bug 2: (judul singkat)
+## Bug 2: Operator <> terpecah menjadi dua token
 
 **Ditemukan oleh:** Ghevira dan Luthfiana
-**Diperbaiki oleh:** Luthfiana
+**Diperbaiki oleh:** Ghevira
 
-**Gejala.** 
+**Gejala.** tokenize("a <> b") menghasilkan token < lalu >. SPESIFIKASI bagian 2.5 mewajibkan <> menjadi satu token OP (maximal munch). Akibatnya laporan_penjualan.sql gagal di-parse: Baris 6, kolom 41: diharapkan ekspresi, ditemukan '>', dan seluruh file tidak menghasilkan satu pun statement (recall parser di evaluate.py awalnya hanya 0.10).
 
 **Reproduksi minimal.** SQL terpendek yang memicu bug:
-
 ```sql
-    
+SELECT a FROM t WHERE a <> 1;
 ```
 
 **Akar masalah.** Mengapa kode lama salah? Konsep apa yang dilanggar? 
+Pada cabang ch == "<", lexer hanya memeriksa apakah karakter berikutnya = (untuk <=). Karakter > tidak diperiksa, sehingga < langsung diterima sebagai operator pendek dan > dibaca terpisah. Scanner seharusnya memakai maximal munch: mencoba lexeme terpanjang yang cocok sebelum menyerah ke yang lebih pendek.
 
 
-**Perbaikan.** File dan fungsi yang diubah, serta alasannya. Sebutkan juga perbaikan
-alternatif yang kalian pertimbangkan dan alasan tidak memilihnya.
+**Perbaikan.** crud/lexer.py, cabang < di _scan_token. Setelah membaca <, dicoba = (menjadi <=), kalau tidak dicoba > (menjadi <>), baru terakhir < saja. Alternatif yang ditolak: menggabungkan < dan > di parser. Itu menaruh perbaikan di tahap yang salah dan membuat < > (dengan spasi) ikut diterima sebagai satu operator.
 
 
-**Test regresi.** Nama test di `tests/test_tambahan.py` yang gagal sebelum perbaikan dan lulus
-sesudahnya.
+**Test regresi.** test_regresi_operator_tidak_sama_dengan_satu_token.
 
 
 **Peran AI.** Apakah AI membantu menemukan atau memperbaiki bug ini? Bagaimana kalian
 memverifikasinya?
+AI menunjukkan lokasi bug, menjelaskan konsep *maximal munch*, dan memberi
+bentuk kode perbaikan serta kode test. Kami menerapkannya, memeriksa diff, lalu memverifikasi
+dengan test baru dan `python -m pytest` (pesan error `laporan_penjualan.sql` berubah, tidak
+lagi `ditemukan '>'`).
 
 
 ## Bug 3: '' di dalam string memutus string menjadi dua token
@@ -91,33 +93,39 @@ test_regresi_kutip_ganda_dalam_string_jadi_satu_token.
 memverifikasinya?
 AI memberi pertanyaan pemandu soal lookahead dan kode test; bug ini ditemukan lewat pemeriksaan kode dengan bantuan AI. Perbaikan kodenya kami tulis sendiri dan diverifikasi dengan test baru serta python -m pytest.
 
-## Bug 4: (judul singkat)
+
+## Bug 4: Presedensi AND dan OR salah
 
 **Ditemukan oleh:** Ghevira dan Luthfiana
-**Diperbaiki oleh:** Luthfiana
+**Diperbaiki oleh:** Ghevira
 
-**Gejala.** 
+**Gejala.** Untuk a = 1 OR b = 2 AND c = 3, AST menaruh AND di puncak dengan OR di dalamnya, padahal SPESIFIKASI bagian 3.1 menyatakan OR berpresedensi lebih rendah dari AND, jadi harusnya a = 1 OR (b = 2 AND c = 3). Terlihat di --ast audit.sql baris 2.
 
 **Reproduksi minimal.** SQL terpendek yang memicu bug:
 
 ```sql
-    
+    SELECT a FROM t WHERE a = 1 OR b = 2 AND c = 3;
 ```
 
 **Akar masalah.** Mengapa kode lama salah? Konsep apa yang dilanggar? 
+ Fungsi _logical memproses AND dan OR dalam satu loop, sehingga keduanya diperlakukan sebagai operator di tingkat yang sama dan dibaca dari kiri ke kanan. Grammar spek punya dua tingkat terpisah (or_expr dan and_expr). Di recursive descent, presedensi dicapai lewat urutan pemanggilan fungsi: operator berpresedensi lebih rendah memanggil yang lebih tinggi untuk operan-operannya.
 
 
 **Perbaikan.** File dan fungsi yang diubah, serta alasannya. Sebutkan juga perbaikan
 alternatif yang kalian pertimbangkan dan alasan tidak memilihnya.
+crud/parser.py. _logical dipecah menjadi _or (loop untuk OR, operannya dari _and) dan _and (loop untuk AND, operannya dari _not); _expr sekarang memanggil _or. Alternatif yang ditolak: tabel prioritas operator atau precedence climbing. Keduanya lebih ringkas tetapi menyembunyikan struktur grammar, sedangkan dua fungsi mencerminkan spek satu-satu dan sejalan dengan gaya fungsi lain di parser (additive, multiplicative).
 
 
 **Test regresi.** Nama test di `tests/test_tambahan.py` yang gagal sebelum perbaikan dan lulus
 sesudahnya.
+test_regresi_and_lebih_kuat_dari_or dan test_regresi_dua_cabang_and_digabung_or.
 
 
 **Peran AI.** Apakah AI membantu menemukan atau memperbaiki bug ini? Bagaimana kalian
 memverifikasinya?
-
+AI menunjukkan lokasi bug, memberi pertanyaan pemandu, bentuk kode perbaikan
+(`_or` dan `_and`), dan kode test. Kami menerapkannya, lalu memverifikasi dengan
+`--ast audit.sql` (OR di puncak), test baru, dan `python -m pytest`.
 
 ## Bug 5: Error recovery membuang seluruh sisa file
 
@@ -149,32 +157,34 @@ test_regresi_recovery_berhenti_di_titik_koma dan test_regresi_recovery_statement
 memverifikasinya?
 AI menunjukkan lokasi bug dan memberi kode perbaikan serta kode test. Kami menerapkannya dan memverifikasi dengan test baru, python -m pytest, dan evaluate.py
 
-## Bug 6: (judul singkat)
+## Bug 6: LEFT OUTER JOIN ditolak
 
 **Ditemukan oleh:** Ghevira dan Luthfiana
-**Diperbaiki oleh:** Luthfiana
+**Diperbaiki oleh:** Ghevira
 
-**Gejala.** 
+**Gejala.** LEFT OUTER JOIN menghasilkan parse error karena parser mengharapkan JOIN tetapi menemukan OUTER. SPESIFIKASI bagian 3 mengizinkan "LEFT" [ "OUTER" ] "JOIN". pemeliharaan.sql baris 5 memakainya. Tidak tertangkap test bawaan.
 
 **Reproduksi minimal.** SQL terpendek yang memicu bug:
 
 ```sql
-    
+   SELECT a FROM t LEFT OUTER JOIN u ON t.id = u.id; 
 ```
 
 **Akar masalah.** Mengapa kode lama salah? Konsep apa yang dilanggar? 
+Setelah mengenali LEFT, fungsi _join langsung menuntut JOIN lewat _expect_kw("JOIN") tanpa menangani OUTER yang bersifat opsional. Bagian opsional di grammar ([ ... ]) harus dicerminkan di parser dengan pengecekan yang tidak menimbulkan error kalau bagian itu tidak ada.
 
 
 **Perbaikan.** File dan fungsi yang diubah, serta alasannya. Sebutkan juga perbaikan
 alternatif yang kalian pertimbangkan dan alasan tidak memilihnya.
+crud/parser.py, fungsi _join. Setelah LEFT, dipanggil _match_kw("OUTER") yang mengonsumsi OUTER kalau ada dan tidak berbuat apa-apa kalau tidak ada, baru kemudian JOIN dituntut. Alternatif yang ditolak: menjadikan LEFT OUTER satu token di lexer, karena itu menyimpang dari spek (keyword diperlakukan satu per satu) dan merusak LEFT JOIN biasa.
 
-
-**Test regresi.** Nama test di `tests/test_tambahan.py` yang gagal sebelum perbaikan dan lulus
-sesudahnya.
+**Test regresi.** 
+test_regresi_left_outer_join.
 
 
 **Peran AI.** Apakah AI membantu menemukan atau memperbaiki bug ini? Bagaimana kalian
 memverifikasinya?
+AI menemukan bug ini lewat pemeriksaan kode terhadap grammar, lalu memberi kode perbaikan dan kode test. Kami menerapkannya dan memverifikasi dengan test baru serta python -m pytest (pemeliharaan.sql bisa diurai seluruhnya setelah T3 selesai).
 
 ## Bug 7: Alias di subquery menunjuk tabel luar (arah pencarian scope terbalik)
 
@@ -207,32 +217,33 @@ test_regresi_alias_dalam_menutupi_alias_luar dan test_regresi_correlated_subquer
 memverifikasinya?
 AI menunjukkan lokasi bug dan memberi kode perbaikan serta kode test. Kami menerapkannya dan memverifikasi dengan test baru, --ast audit.sql, kolom.csv (kolom baris 12 sekarang menunjuk pesanan), dan python -m pytest
 
-## Bug 8: (judul singkat)
+## Bug 8: Alias DELETE bocor ke statement berikutnya
 
 **Ditemukan oleh:** Ghevira dan Luthfiana
-**Diperbaiki oleh:** Luthfiana
+**Diperbaiki oleh:** Ghevira
 
-**Gejala.** 
+**Gejala.** Di audit.sql, alias s dari DELETE FROM sesi s (baris 16) masih terlihat di SELECT s.id FROM pengguna u (baris 18) dan di-resolve ke sesi, tanpa diagnostik. SPESIFIKASI bagian 4.5: setelah satu statement selesai tidak boleh ada scope tersisa, dan harusnya muncul error alias 's' tidak terdefinisi.
 
 **Reproduksi minimal.** SQL terpendek yang memicu bug:
 
 ```sql
-    
+    DELETE FROM sesi s WHERE s.a = 1;
+    SELECT s.id FROM u;
 ```
 
 **Akar masalah.** Mengapa kode lama salah? Konsep apa yang dilanggar? 
-
+Fungsi _delete memanggil _push() untuk membuat scope baru tetapi tidak pernah _pop(), sehingga scope DELETE tetap menempel di tumpukan dan terlihat oleh statement berikutnya. _select dan _update sudah memasangkan _push dengan _pop. Scope diperlakukan sebagai tumpukan: setiap yang dibuka harus ditutup.
 
 **Perbaikan.** File dan fungsi yang diubah, serta alasannya. Sebutkan juga perbaikan
 alternatif yang kalian pertimbangkan dan alasan tidak memilihnya.
+crud/resolver.py, fungsi _delete. Ditambahkan self._pop() di akhir fungsi, berpasangan dengan _push(). Alternatif yang ditolak: mereset self.scope = None di loop resolve_script setiap statement. Itu menutupi gejalanya, tetapi tidak memperbaiki ketidakpasangan push dan pop, dan bug serupa di fungsi lain tidak akan ketahuan.
 
-
-**Test regresi.** Nama test di `tests/test_tambahan.py` yang gagal sebelum perbaikan dan lulus
-sesudahnya.
-
+**Test regresi.** 
+test_regresi_alias_delete_tidak_bocor_ke_statement_berikutnya.
 
 **Peran AI.** Apakah AI membantu menemukan atau memperbaiki bug ini? Bagaimana kalian
 memverifikasinya?
+AI menunjukkan lokasi bug dan memberi kode perbaikan serta kode test. Kami menerapkannya dan memverifikasi dengan test baru dan python -m pytest. Setelah perbaikan, CLI menampilkan audit.sql: baris 18: error: alias 's' tidak terdefinisi.
 
 ## Bug 9: Tabel di subquery pada UPDATE ditandai U, bukan R
 
