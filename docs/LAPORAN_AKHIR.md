@@ -46,7 +46,13 @@ Kasus 2: DELETE FROM ikut dihitung sebagai pembacaan (laporan_penjualan.sql bari
 
     - Kesalahan regex: ada dua pola yang cocok pada teks yang sama: DELETE FROM nama (D) dan FROM nama (R). Hasilnya pesanan D (benar) dan pesanan R (salah).
     - Kenapa parser benar: grammar delete_stmt = "DELETE" "FROM" table_name ... menjadikan FROM bagian dari DELETE, bukan klausa pembacaan. Parser memahami kata dari posisinya dalam grammar, bukan sekadar mencocokkan kata.
-3.
+    
+Kasus 3: Tabel kedua pada FROM a, b hilang (audit.sql baris 2)
+
+    FROM pelanggan p, pesanan o
+
+    - kesalahan regex: pola FROM\s+nama hanya menangkap satu nama setelah FROM. pesanan yang ada setelah koma lolos (FN)
+    - kenapa parser benar: karena grammar table_ref { "," table_ref } mengenali pengulangan dengan koma, jadi semua tabel di FROM terbaca
 
 ## 3. Batas pendekatan kami
 
@@ -54,9 +60,19 @@ Minimal tiga hal yang **tidak bisa** ditangani dengan benar oleh tool ini meskip
 sudah diperbaiki. Untuk tiap batas: contoh SQL atau situasinya, akibatnya pada CRUD matrix,
 dan informasi apa yang dibutuhkan untuk mengatasinya.
 
-1.
-2.
-3.
+1. Kolom tanpa qualifier pada query dengan dua tabel atau lebih
+    SELECT nama FROM pelanggan p JOIN pesanan o ON o.pelanggan_id = p.id
+
+    - akibatnya resolver hanya bisa mengeluarkan warning kolom 'nama' ambigu tanpa skema, dan resolved tetap None. Matriks tabel tetap benar (pelanggan R, pesanan R), tapi kolom.csv kehilangan atribusi tabel untuk kolom itu.
+    - informasi yang dibutuhkan adalah skema database (kolom milik tabel mana). Tool ini sengaja tidak memilikinya. 
+
+2. Sintaks di luar lingkup (CTE, UNION, MERGE, DDL, t.*)
+    WITH x AS (SELECT a FROM t) SELECT a FROM x
+
+    - akibatnya statement ditolak parser (diharapkan awal statement ... ditemukan 'WITH') dan tidak dihitung, jadi matriks untuk statement itu kosong (false negative). Hal serupa terjadi pada UNION, CREATE TABLE, dan SELECT t.*.
+    - informasi yang dibutuhkan adalah grammar yang diperluas dan aturan scope untuk CTE.
+
+3. 
 
 ## 4. Pembagian kerja
 
