@@ -33,7 +33,7 @@ test_regresi_keyword_campuran_huruf_dan_identifier_berawalan_keyword (ditambah t
 **Peran AI.** Apakah AI membantu menemukan atau memperbaiki bug ini? Bagaimana kalian
 memverifikasinya?
 menunjukkan lokasi bug (_word), memberi kode perbaikan dan kode test. Kami menerapkannya, memeriksa diff, dan memverifikasi dengan menjalankan test baru (gagal sebelum, lulus sesudah) serta python -m pytest.
----
+
 ## Bug 2: Operator <> terpecah menjadi dua token
 
 **Ditemukan oleh:** Ghevira dan Luthfiana
