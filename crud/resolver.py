@@ -86,7 +86,6 @@ class Resolver:
 
     def _lookup(self, name: str) -> ScopeEntry | None:
         """Cari nama di rantai scope."""
-        chain = []
         scope = self.scope
         while scope is not None:
             if name in scope.entries:
