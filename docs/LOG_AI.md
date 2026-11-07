@@ -4,7 +4,18 @@ Catat setiap penggunaan AI atau coding agent yang memengaruhi kode atau laporan.
 
 | No | Siapa | Prompt / tugas (ringkas) | Hasil: diterima, diubah, atau ditolak | Alasan | Cara verifikasi |
 | --- | --- | --- | --- | --- | --- |
-| 1 | | | | | |
+| 1 | Ghevira | Memahami deskripsi tugas dan SPESIFIKASI.md; cara menjalankan perintah awal di Windows PowerShell (wildcard `*.sql` tidak ter-expand) | Diterima | Penjelasan cocok dengan pesan error `Invalid argument: 'data\sample\*.sql'` yang kami lihat sendiri | Menjalankan perintah dengan nama file satu per satu |
+| 2 | Ghevira | Mencari gejala dari output `pytest`, `--ast`, `detail.csv`, `kolom.csv`, dan `evaluate.py` untuk menyusun daftar bug dan TODO | Diterima, setelah diuji | Gejala sesuai output yang kami lihat | Mereproduksi gejala di terminal dengan SQL minimal dan membandingkannya dengan bagian spek yang disebut |
+| 3 | Ghevira | **Bug 2** (`<>`): lokasi di `lexer.py`, konsep *maximal munch*, bentuk kode perbaikan, dan kode test | Diterima | Sesuai spek 2.5 | Test regresi gagal sebelum dan lulus sesudah; `python -m pytest`; membaca diff; pesan error `laporan_penjualan.sql` tidak lagi `ditemukan '>'` |
+| 4 | Ghevira | **Bug 4** (presedensi OR/AND): pertanyaan pemandu, bentuk `_or` dan `_and`, kode test. AI mengoreksi percobaan pertama kami yang fungsi `_and`-nya belum dibuat | Diterima setelah dikoreksi | Percobaan pertama akan menghasilkan `AttributeError` | Test regresi, `--ast audit.sql` (OR di puncak), kasus `BETWEEN ... AND`, `python -m pytest` |
+| 5 | Ghevira | **Bug 6** (`LEFT OUTER JOIN`): lokasi di `_join` dan kode perbaikan serta kode test | Diterima | Sesuai grammar spek bagian 3 | Test baru, `python -m pytest`; `pemeliharaan.sql` bisa diurai seluruhnya setelah T3 selesai |
+| 6 | Ghevira | **Bug 8** (alias `DELETE` bocor): lokasi di `_delete` dan kode perbaikan serta kode test | Diterima | Sesuai spek 4.5 | Test baru, `python -m pytest`; CLI menampilkan `audit.sql: baris 18: error: alias 's' tidak terdefinisi` |
+| 7 | Ghevira | **T2** (kolom tanpa qualifier) dan **T3** (komentar blok `/* */`): meminta penjelasan konsepnya, lalu dibantu cara menulis kodenya dengan benar | Diterima | Sesuai spek 4.3 (T2) dan 2.3 (T3) | `test_kolom_tanpa_qualifier_ambigu_untuk_dua_tabel` dan `test_komentar_blok_tidak_menghasilkan_token`, test tambahan, `python -m pytest` |
+| 8 | Ghevira | Draf `LAPORAN_BUG.md` (gejala, reproduksi, bahan akar masalah) | Diubah | Kami menulis ulang akar masalah, menambahkan alternatif yang ditolak dan bukti verifikasi | Mencocokkan dengan kode, SPESIFIKASI.md, dan nama commit di `git log` |
+| 9 | Ghevira | Label ground truth: kami mencoba melabeli secara manual dulu lalu membandingkan dengan hasil jawaban AI | Diubah | Label akhir diperiksa ulang ke aturan spek bagian 5 per statement | Membaca ulang spek; `python evaluate.py` (parser 1.00 untuk 27 triple); salah ketik `R\` ditemukan dari selisih FP/FN lalu diperbaiki |
+| 10 | Ghevira | Lima test kasus tepi: AI mengusulkan lima kasus lengkap dengan alasan risikonya; bagian Ghevira adalah nomor 2 (`LexError` menghentikan file) dan nomor 3 (`BETWEEN ... AND` bersama `AND` logika) | Diterima, dengan penyesuaian | Kasus sesuai spek 2.7 dan 3.2; kami menghapus test duplikat | Menjalankan di repo kami (`python -m pytest`: 63 passed) |
+| 11 | Ghevira | `LAPORAN_AKHIR.md`: kerangka tiga kasus regex salah dan batas pendekatan | Diubah | Kami menulis ulang dengan kalimat sendiri | Membaca `baseline/regex_extractor.py`, mencocokkan dengan FP dan FN di `evaluate.py`, dan menjalankan `extract(...)` pada contoh kecil |
 
-**Refleksi (3-5 kalimat).** Di bagian mana AI paling membantu? Di mana AI keliru atau
-menyesatkan, dan bagaimana kalian mengetahuinya?
+
+**Refleksi Ghevira.** AI paling membantu untuk menunjukkan lokasi bug, menjelaskan konsep di baliknya (*maximal munch*, presedensi pada recursive descent, siklus hidup scope), dan menyarankan lima kasus tepi yang belum kami pikirkan. Kami juga belajar tidak menganggap keluaran AI benar sebelum dijalankan sendiri: setiap perbaikan kami uji dengan test yang gagal sebelum dan lulus sesudah, dan label ground truth kami bandingkan dengan `evaluate.py` serta kami baca ulang terhadap spek. Kami juga berlatih saling menjelaskan perbaikan satu sama lain supaya keduanya paham seluruh kode, termasuk bagian yang dikerjakan partner.
+
