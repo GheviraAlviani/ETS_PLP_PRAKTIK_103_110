@@ -20,7 +20,7 @@ tokenize("select") menghasilkan IDENT 'select'. SPESIFIKASI bagian 2.2 mewajibka
 ```
 
 **Akar masalah.** Mengapa kode lama salah? Konsep apa yang dilanggar? 
-Lexer membaca satu kata utuh lalu memutuskan apakah itu keyword dengan mengecek text in KEYWORDS. Isi KEYWORDS semuanya huruf besar, sedangkan text adalah teks persis seperti diketik. Jadi select atau Select tidak pernah cocok dan jatuh ke cabang IDENT. Ini soal tahap scanning: pengenalan reserved word harus membandingkan bentuk yang sudah dinormalisasi.
+Lexer membaca satu kata full, lalu mengecek apakah kata itu ada di daftar KEYWORDS. Namun, isi daftar itu huruf besar semua, sedangkan kata yang dicek dibiarkan sama seperti yang diketik. Jadi select tidak pernah cocok dengan SELECT dan menjadi identifier. Hal Ini ada di tahap scanning (Bab 4): sebelum memutuskan sebuah kata itu reserved word atau bukan, bentuknya harus disamakan dulu.
 
 **Perbaikan.** File dan fungsi yang diubah, serta alasannya. Sebutkan juga perbaikan
 alternatif yang kalian pertimbangkan dan alasan tidak memilihnya.
@@ -79,7 +79,7 @@ tokenize("'O''Brien'") menghasilkan dua token STRING (O dan Brien). SPESIFIKASI 
 ```
 
 **Akar masalah.** Mengapa kode lama salah? Konsep apa yang dilanggar? 
-Fungsi _string berhenti pada kutip penutup pertama yang ditemukan, tanpa melihat karakter sesudahnya. Padahal dua kutip berturut-turut adalah escape untuk satu kutip. Untuk membedakannya dibutuhkan lookahead satu karakter: begitu menemukan ', intip karakter berikutnya sebelum memutuskan string selesai (Crafting Interpreters Bab 4, string literal).
+Fungsi _string berhenti ketika ketemu kutip penutup pertama, tanpa melihat karakter setelahnya. Padahal dua kutip berturut-turut adalah cara menulis satu kutip di dalam isi string. Untuk membedakannya, lexer perlu lookahead satu karakter: begitu ketemu ', intip dulu karakter berikutnya sebelum memutuskan string sudah selesai (Bab 4, bagian string literal).
 
 **Perbaikan.** File dan fungsi yang diubah, serta alasannya. Sebutkan juga perbaikan
 alternatif yang kalian pertimbangkan dan alasan tidak memilihnya.
@@ -143,7 +143,7 @@ Setelah satu statement rusak, semua statement sesudahnya hilang. SELECT FROM a; 
 ```
 
 **Akar masalah.** Mengapa kode lama salah? Konsep apa yang dilanggar? 
-Fungsi _synchronize terus memanggil _advance() sampai akhir token dan tidak pernah berhenti di ;. Setelah error, parser seharusnya mencari titik aman (synchronization point) untuk melanjutkan, yaitu batas statement berikutnya. Tanpa itu, panic mode membuang semua token yang tersisa (Crafting Interpreters Bab 6, panic mode error recovery).
+_synchronize terus memanggil _advance() hingga token habis dan tidak pernah berhenti di ;. Setelah error, parser seharusnya mencari titik aman untuk melanjutkan. Pada SQL, batas statement ditandai dengan tanda titik koma (;). Jika batas tersebut tidak ditemukan, mekanisme panic mode dapat membuang token atau statement valid berikutnya saat proses pemulihan error. (Bab 6, panic mode error recovery).
 
 **Perbaikan.** File dan fungsi yang diubah, serta alasannya. Sebutkan juga perbaikan
 alternatif yang kalian pertimbangkan dan alasan tidak memilihnya.
@@ -202,7 +202,7 @@ Pada audit.sql baris 12, x.pelanggan_id dan x.total di dalam subquery di-resolve
 ```
 
 **Akar masalah.** Mengapa kode lama salah? Konsep apa yang dilanggar? 
-Fungsi _lookup mengumpulkan rantai scope (dari terdalam ke terluar) lalu menelusurinya dengan reversed(chain), sehingga yang dicek pertama adalah scope terluar. Akibatnya alias luar menang atas alias dalam, padahal resolusi lexical harus mulai dari scope paling dalam dan naik ke luar sehingga alias dalam menutupi alias luar (shadowing), sementara alias yang hanya ada di luar tetap bisa ditemukan.
+_lookup mengumpulkan rantai scope dari terdalam hingga terluar, lalu menelusurinya dengan reversed, jadi yang dicek pertama justru scope terluar. Akibatnya alias luar menang daripada alias dalam. Resolusi nama (Bab 11) seharusnya mulai dari scope paling dalam lalu naik keluar. Dengan begitu alias dalam menutupi alias luar (shadowing), sementara alias yang hanya ada di luar tetap bisa ditemukan oleh correlated subquery.
 
 **Perbaikan.** File dan fungsi yang diubah, serta alasannya. Sebutkan juga perbaikan
 alternatif yang kalian pertimbangkan dan alasan tidak memilihnya.
@@ -260,7 +260,7 @@ UPDATE pesanan ... WHERE pelanggan_id IN (SELECT id FROM pelanggan ...) menghasi
 ```
 
 **Akar masalah.** Mengapa kode lama salah? Konsep apa yang dilanggar? 
-Di cabang ast.Update, analyzer memanggil _collect(..., "U") untuk bagian SET dan WHERE. _collect memberi operasi yang diterimanya ke semua tabel di dalam subquery, sehingga tabel yang hanya dibaca ikut ditandai U. Operasi seharusnya diturunkan dari peran tabel di AST (target atau sumber baca), bukan diwariskan dari jenis statement luar. Ini analisis atas AST yang sudah di-resolve, bukan atas teks.
+Di cabang ast.Update, analyzer memanggil _collect(..., "U"), lalu _collect memberi operasi itu ke semua tabel di dalam subquery. Jadi tabel yang hanya dibaca ikut ditandai U. Operasi seharusnya ditentukan dari peran tabel di AST (tabel target diubah, tabel sumber dibaca), bukan diwariskan dari jenis statement luarnya. Analyzer bekerja di atas AST yang sudah di-resolve (Bab 5 dan 11), bukan di atas teks.
 
 **Perbaikan.** File dan fungsi yang diubah, serta alasannya. Sebutkan juga perbaikan
 alternatif yang kalian pertimbangkan dan alasan tidak memilihnya.
