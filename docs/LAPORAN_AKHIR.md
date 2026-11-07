@@ -113,9 +113,7 @@ Satu bug atau satu TODO dikerjakan dalam satu commit.
 - Memahami sebelum memperbaiki. Tiap bug dilacak ke tahap pipeline dan bagian spek yang
   dilanggar. Kami menulis test yang gagal lebih dulu, memperbaiki kode sampai lulus, lalu
   commit tersendiri per bug.
-- Pembagian pengerjaan. Bug dan TODO dibagi bergantian (seperti pada tabel). Luthfiana menyentuh
-  keempat tahap pipeline. Ghevira menyentuh lexer, parser, dan resolver; bagian analyzer
-  (Bug 9).
+- Pembagian pengerjaan. Bug dan TODO dibagi bergantian (seperti pada tabel).
 - Ground truth. `audit.sql`: percobaan awal dilakukan manual lalu dikoreksi dengan bantuan
   AI. `pemeliharaan.sql`: label diturunkan dari aturan spek 5 dengan bantuan AI. Keduanya
   diverifikasi dengan `evaluate.py` dan kami menjelaskan ulang alasan tiap label.
