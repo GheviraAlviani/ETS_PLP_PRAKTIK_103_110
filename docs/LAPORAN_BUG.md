@@ -1,4 +1,4 @@
-# Laporan Bug
+`# Laporan Bug
 
 Salin blok di bawah untuk setiap bug. Bagian **Akar masalah** wajib ditulis dengan kata-kata
 sendiri dan memakai konsep dari *Crafting Interpreters* (sebutkan bab). Bagian ini diuji lisan.
@@ -20,7 +20,7 @@ tokenize("select") menghasilkan IDENT 'select'. SPESIFIKASI bagian 2.2 mewajibka
 ```
 
 **Akar masalah.** Mengapa kode lama salah? Konsep apa yang dilanggar? 
-Lexer membaca satu kata full, lalu mengecek apakah kata itu ada di daftar KEYWORDS. Namun, isi daftar itu huruf besar semua, sedangkan kata yang dicek dibiarkan sama seperti yang diketik. Jadi select tidak pernah cocok dengan SELECT dan menjadi identifier. Hal Ini ada di tahap scanning (Bab 4): sebelum memutuskan sebuah kata itu reserved word atau bukan, bentuknya harus disamakan dulu.
+Lexer membaca satu kata full, lalu mengecek apakah kata itu ada di daftar KEYWORDS. Namun, isi daftar itu huruf besar semua, sedangkan kata yang dicek dibiarkan sama seperti yang diketik. Jadi select tidak pernah cocok dengan SELECT dan menjadi identifier. Hal Ini ada di tahap scanning (Crafting Interpreters Bab 4): sebelum memutuskan sebuah kata itu reserved word atau bukan, bentuknya harus disamakan dulu.
 
 **Perbaikan.** File dan fungsi yang diubah, serta alasannya. Sebutkan juga perbaikan
 alternatif yang kalian pertimbangkan dan alasan tidak memilihnya.
@@ -32,8 +32,10 @@ test_regresi_keyword_campuran_huruf_dan_identifier_berawalan_keyword (ditambah t
 
 **Peran AI.** Apakah AI membantu menemukan atau memperbaiki bug ini? Bagaimana kalian
 memverifikasinya?
-AI menunjukkan lokasi bug (_word), memberi kode perbaikan dan kode test. Kami menerapkannya, memeriksa diff, dan memverifikasi dengan menjalankan test baru (gagal sebelum, lulus sesudah) serta python -m pytest.
 
+menunjukkan lokasi bug (_word), memberi kode perbaikan dan kode test. Kami menerapkannya, memeriksa diff, dan memverifikasi dengan menjalankan test baru (gagal sebelum, lulus sesudah) serta python -m pytest.
+
+---
 ## Bug 2: Operator <> terpecah menjadi dua token
 
 **Ditemukan oleh:** Ghevira dan Luthfiana
@@ -47,7 +49,7 @@ SELECT a FROM t WHERE a <> 1;
 ```
 
 **Akar masalah.** Mengapa kode lama salah? Konsep apa yang dilanggar? 
-ketika lexer bertemu <, ia hanya mengecek apakah karakter berikutnya =. Karakter > tidak pernah dicek, jadi < langsung dianggap operator sendiri dan > dibaca terpisah. Padahal scanner seharusnya pakai prinsip maximal munch (Bab 4): mencoba lexeme terpanjang yang masih cocok, baru mundur ke yang lebih pendek kalau tidak ada.
+Pada cabang ch == "<", lexer hanya memeriksa apakah karakter berikutnya = (untuk <=). Karakter > tidak diperiksa, sehingga < langsung diterima sebagai operator pendek dan > dibaca terpisah. Scanner seharusnya memakai maximal munch: mencoba lexeme terpanjang yang cocok sebelum menyerah ke yang lebih pendek.
 
 
 **Perbaikan.** crud/lexer.py, cabang < di _scan_token. Setelah membaca <, dicoba = (menjadi <=), kalau tidak dicoba > (menjadi <>), baru terakhir < saja. Alternatif yang ditolak: menggabungkan < dan > di parser. Itu menaruh perbaikan di tahap yang salah dan membuat < > (dengan spasi) ikut diterima sebagai satu operator.
@@ -79,7 +81,7 @@ tokenize("'O''Brien'") menghasilkan dua token STRING (O dan Brien). SPESIFIKASI 
 ```
 
 **Akar masalah.** Mengapa kode lama salah? Konsep apa yang dilanggar? 
-Fungsi _string berhenti ketika ketemu kutip penutup pertama, tanpa melihat karakter setelahnya. Padahal dua kutip berturut-turut adalah cara menulis satu kutip di dalam isi string. Untuk membedakannya, lexer perlu lookahead satu karakter: begitu ketemu ', intip dulu karakter berikutnya sebelum memutuskan string sudah selesai (Bab 4, bagian string literal).
+Fungsi _string berhenti ketika ketemu kutip penutup pertama, tanpa melihat karakter setelahnya. Padahal dua kutip berturut-turut adalah cara menulis satu kutip di dalam isi string. Untuk membedakannya, lexer perlu lookahead satu karakter: begitu ketemu ', intip dulu karakter berikutnya sebelum memutuskan string sudah selesai (Crafting Interpreters Bab 4, string literal).
 
 **Perbaikan.** File dan fungsi yang diubah, serta alasannya. Sebutkan juga perbaikan
 alternatif yang kalian pertimbangkan dan alasan tidak memilihnya.
@@ -108,7 +110,7 @@ AI memberi pertanyaan pemandu soal lookahead dan kode test; bug ini ditemukan le
 ```
 
 **Akar masalah.** Mengapa kode lama salah? Konsep apa yang dilanggar? 
-Kode lama memproses AND dan OR dalam satu loop yang sama, jadi keduanya dianggap selevel dan dibaca kiri ke kanan. Di grammar, OR dan AND adalah dua tingkat berbeda. Dalam recursive descent (Bab 6), presedensi dicapai lewat urutan pemanggilan fungsi: operator yang lebih lemah memanggil yang lebih kuat untuk mengambil operannya. Karena loop-nya digabung, struktur bertingkat itu hilang.
+ Fungsi _logical memproses AND dan OR dalam satu loop, sehingga keduanya diperlakukan sebagai operator di tingkat yang sama dan dibaca dari kiri ke kanan. Grammar spek punya dua tingkat terpisah (or_expr dan and_expr). Di recursive descent, presedensi dicapai lewat urutan pemanggilan fungsi: operator berpresedensi lebih rendah memanggil yang lebih tinggi untuk operan-operannya.
 
 
 **Perbaikan.** File dan fungsi yang diubah, serta alasannya. Sebutkan juga perbaikan
@@ -171,7 +173,7 @@ AI menunjukkan lokasi bug dan memberi kode perbaikan serta kode test. Kami mener
 ```
 
 **Akar masalah.** Mengapa kode lama salah? Konsep apa yang dilanggar? 
-Setelah mengenali LEFT, _join langsung memanggil JOIN. tanpa menangani keyword OUTER yang sifatnya opsional . Akibatnya sintaks valid LEFT OUTER JOIN ditolak. Bagian opsional di grammar ([ ... ]) harus direpresentasikan di parser berupa pengecekan "kalau ada, konsumsi; kalau tidak ada, lanjut saja" (Bab 6, recursive descent). 
+Setelah mengenali LEFT, fungsi _join langsung menuntut JOIN lewat _expect_kw("JOIN") tanpa menangani OUTER yang bersifat opsional. Bagian opsional di grammar ([ ... ]) harus dicerminkan di parser dengan pengecekan yang tidak menimbulkan error kalau bagian itu tidak ada.
 
 
 **Perbaikan.** File dan fungsi yang diubah, serta alasannya. Sebutkan juga perbaikan
@@ -202,7 +204,7 @@ Pada audit.sql baris 12, x.pelanggan_id dan x.total di dalam subquery di-resolve
 ```
 
 **Akar masalah.** Mengapa kode lama salah? Konsep apa yang dilanggar? 
-_lookup mengumpulkan rantai scope dari terdalam hingga terluar, lalu menelusurinya dengan reversed, jadi yang dicek pertama justru scope terluar. Akibatnya alias luar menang daripada alias dalam. Resolusi nama (Bab 11) seharusnya mulai dari scope paling dalam lalu naik keluar. Dengan begitu alias dalam menutupi alias luar (shadowing), sementara alias yang hanya ada di luar tetap bisa ditemukan oleh correlated subquery.
+_lookup mengumpulkan rantai scope dari terdalam hingga terluar, lalu menelusurinya dengan reversed, jadi yang dicek pertama justru scope terluar. Akibatnya alias luar menang daripada alias dalam. Resolusi nama (Crafting Interpreters Bab 11) seharusnya mulai dari scope paling dalam lalu naik keluar. Dengan begitu alias dalam menutupi alias luar (shadowing), sementara alias yang hanya ada di luar tetap bisa ditemukan oleh correlated subquery.
 
 **Perbaikan.** File dan fungsi yang diubah, serta alasannya. Sebutkan juga perbaikan
 alternatif yang kalian pertimbangkan dan alasan tidak memilihnya.
@@ -232,7 +234,7 @@ AI menunjukkan lokasi bug dan memberi kode perbaikan serta kode test. Kami mener
 ```
 
 **Akar masalah.** Mengapa kode lama salah? Konsep apa yang dilanggar? 
-_delete memanggil _push() untuk membuat scope baru, tapi tidak pernah _pop(). Scope itu menumpuk di stack dan masih terlihat oleh statement berikutnya. Scope diperlakukan sebagai stack (Bab 11, `beginScope`dan `endScope`): setiap yang dibuka harus ditutup. _select dan _update sudah berpasangan, hanya _delete yang terlewat.
+Fungsi _delete memanggil _push() untuk membuat scope baru tetapi tidak pernah _pop(), sehingga scope DELETE tetap menempel di tumpukan dan terlihat oleh statement berikutnya. _select dan _update sudah memasangkan _push dengan _pop. Scope diperlakukan sebagai tumpukan: setiap yang dibuka harus ditutup.
 
 **Perbaikan.** File dan fungsi yang diubah, serta alasannya. Sebutkan juga perbaikan
 alternatif yang kalian pertimbangkan dan alasan tidak memilihnya.
@@ -260,7 +262,7 @@ UPDATE pesanan ... WHERE pelanggan_id IN (SELECT id FROM pelanggan ...) menghasi
 ```
 
 **Akar masalah.** Mengapa kode lama salah? Konsep apa yang dilanggar? 
-Di cabang ast.Update, analyzer memanggil _collect(..., "U"), lalu _collect memberi operasi itu ke semua tabel di dalam subquery. Jadi tabel yang hanya dibaca ikut ditandai U. Operasi seharusnya ditentukan dari peran tabel di AST (tabel target diubah, tabel sumber dibaca), bukan diwariskan dari jenis statement luarnya. Analyzer bekerja di atas AST yang sudah di-resolve (Bab 5 dan 11), bukan di atas teks.
+Di cabang ast.Update, analyzer memanggil _collect(..., "U"), lalu _collect memberi operasi itu ke semua tabel di dalam subquery. Jadi tabel yang hanya dibaca ikut ditandai U. Operasi seharusnya ditentukan dari peran tabel di AST (tabel target diubah, tabel sumber dibaca), bukan diwariskan dari jenis statement luarnya. Analyzer bekerja di atas AST yang sudah di-resolve (Crafting Interpreters Bab 5 untuk representasi AST dan Bab 11 untuk pemrosesan sesudah parsing), bukan di atas teks.
 
 **Perbaikan.** File dan fungsi yang diubah, serta alasannya. Sebutkan juga perbaikan
 alternatif yang kalian pertimbangkan dan alasan tidak memilihnya.
@@ -272,4 +274,4 @@ test_regresi_subquery_di_update_hanya_dibaca dan test_regresi_update_membaca_tab
 
 **Peran AI.** Apakah AI membantu menemukan atau memperbaiki bug ini? Bagaimana kalian
 memverifikasinya?
-AI menunjukkan lokasi bug dan memberi kode perbaikan serta kode test. Kami menerapkannya dan memverifikasi dengan test baru, detail.csv dan crud_matrix.csv (pelanggan di audit.sql sekarang R), serta python -m pytest.
+AI menunjukkan lokasi bug dan memberi kode perbaikan serta kode test. Kami menerapkannya dan memverifikasi dengan test baru, detail.csv dan crud_matrix.csv (pelanggan di audit.sql sekarang R), serta python -m pytest.`
