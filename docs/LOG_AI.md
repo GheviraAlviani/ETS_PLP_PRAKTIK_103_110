@@ -1,6 +1,7 @@
 # Log Penggunaan AI
 
 Catat setiap penggunaan AI atau coding agent yang memengaruhi kode atau laporan.
+Alat yang dipakai: Claude, masing-masing dengan percakapan sendiri.
 
 | No | Siapa | Prompt / tugas (ringkas) | Hasil: diterima, diubah, atau ditolak | Alasan | Cara verifikasi |
 | --- | --- | --- | --- | --- | --- |
